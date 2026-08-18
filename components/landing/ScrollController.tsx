@@ -281,7 +281,10 @@ export function ScrollController({
     // ════════════════════════════════════════════════════════════
     tl.addLabel("action2", T * 0.97);
     
-    moveCam(tl, "action2", 6, "action2", "power2.inOut");
+    // Dim the cyan network flow by ~50% to push it into the background and support the text
+    tweenProxy(tl, { connectionOpacity: 0.04, powerFlowIntensity: 0.1, consumerReveal: 0.5, priorityTrajectory: 0.4, duration: 6, ease: "power2.inOut" }, "action2");
+    
+    moveCam(tl, "action2", 8, "action2", "power2.out"); // Slower, calmer easing for the conclusion
 
     tweenHTML(tl, "[data-scene-id='closing-quote']", "action2+=1");
     tweenHTML(tl, "[data-scene-id='closedloop-cta']", "action2+=2");

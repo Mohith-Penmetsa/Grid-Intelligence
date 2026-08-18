@@ -422,7 +422,8 @@ export function CinematicLanding() {
                     href={ROUTES.OPERATIONS}
                     className={cn(
                       buttonVariants({ variant: "default" }),
-                      "h-12 gap-2 px-8 text-base font-medium rounded-md shadow-lg"
+                      "h-12 gap-2 px-8 text-base font-medium rounded-md shadow-lg transition-all duration-300",
+                      "hover:bg-[#122F4A] hover:border-[#39D9FF] hover:shadow-[0_0_20px_rgba(57,217,255,0.15)]"
                     )}
                     style={{ background: "#0D2439", color: "#F5F7FA", border: "1px solid rgba(57,189,232,0.3)" }}
                   >

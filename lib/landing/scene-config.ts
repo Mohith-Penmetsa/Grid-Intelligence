@@ -108,8 +108,10 @@ export const CAMERA_KEYFRAMES: Record<string, CameraKeyframe> = {
   // Scene 7 — Action beat 1: focus on the priority houses along the street
   action:      { position: [15, 2.5, 62], target: [18, 0.5, 60] },
   
-  // Scene 8 — Action beat 2: final C-014 house
-  action2:     { position: [18,  1,  61], target: [22, 0.5, 60] },
+  // Scene 8 — Action beat 2: final closing
+  // Pull camera back, raise it slightly, and angle UP (Y=6) to push infrastructure 
+  // into the lower third of the frame, creating clean negative space in the center.
+  action2:     { position: [14, 3.5, 66], target: [22, 6, 58] },
 } as const;
 
 // ─── Scroll height ────────────────────────────────────────────
