@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { PageShell } from "@/components/shared/PageShell";
-import { ComingSoon } from "@/components/shared/ComingSoon";
-
-// ─── Metadata ─────────────────────────────────────────────────
+import { ReportsDashboard } from "@/components/reports/ReportsDashboard";
 
 export const metadata: Metadata = {
   title: "Reports & Analytics",
@@ -10,15 +8,13 @@ export const metadata: Metadata = {
     "Performance reports, inspection outcomes, revenue recovery analytics, and model feedback.",
 };
 
-// ─── Reports Page ─────────────────────────────────────────────
-
 export default function ReportsPage() {
   return (
     <PageShell
       title="Reports & Analytics"
-      description="Inspection performance reports, revenue recovery analytics, and feedback for AI model improvement."
+      description="Executive overview of grid loss, high-risk entities, and field operation performance."
     >
-      <ComingSoon milestone="Milestone 7 — Reports & Analytics" />
+      <ReportsDashboard />
     </PageShell>
   );
 }

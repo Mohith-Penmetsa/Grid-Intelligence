@@ -1,24 +1,20 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { PageShell } from "@/components/shared/PageShell";
-import { ComingSoon } from "@/components/shared/ComingSoon";
-
-// ─── Metadata ─────────────────────────────────────────────────
+import { InspectionIntelligenceDashboard } from "@/components/inspections/InspectionIntelligenceDashboard";
 
 export const metadata: Metadata = {
   title: "Inspection Center",
   description:
-    "Manage field inspections: assign inspectors, track progress, and record outcomes.",
+    "Manage, prioritize, assign, and track field inspections derived from transformer and consumer intelligence.",
 };
-
-// ─── Inspections Page ─────────────────────────────────────────
 
 export default function InspectionsPage() {
   return (
     <PageShell
       title="Inspection Center"
-      description="Manage and track all field inspections. Assign inspectors, monitor progress, and capture outcomes."
+      description="Manage field operations, track verification evidence, and assign officers to flagged anomaly sites."
     >
-      <ComingSoon milestone="Milestone 6 — Inspection Management" />
+      <InspectionIntelligenceDashboard />
     </PageShell>
   );
 }

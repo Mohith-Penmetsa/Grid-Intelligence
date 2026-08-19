@@ -2,8 +2,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ArrowDown, Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { MOCK_TRANSFORMERS } from "@/lib/intelligence/transformer-data";
+import { analyzeTransformerRisk } from "@/lib/intelligence/transformer-risk";
 
 export function TransformerDetail({ transformerId, onClose }: { transformerId: string, onClose: () => void }) {
+  const transformer = MOCK_TRANSFORMERS.find(t => t.id === transformerId);
+  if (!transformer) return null;
+
+  const analysis = analyzeTransformerRisk(transformer);
+  const t = analysis.data;
+  
+  const expectedAvailable = t.input - t.techLoss;
+  const isHighRisk = analysis.riskLevel === "critical" || analysis.riskLevel === "high";
+  const isMediumRisk = analysis.riskLevel === "medium";
+  
+  // Calculate visual bar percentages
+  const totalLoss = t.techLoss + t.commLoss;
+  const techLossPct = totalLoss > 0 ? (t.techLoss / totalLoss) * 100 : 0;
+  const commLossPct = totalLoss > 0 ? (t.commLoss / totalLoss) * 100 : 0;
+
   return (
     <Card className="bg-surface-2 border-border/50 animate-in slide-in-from-top-4 fade-in duration-300">
       <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border/50">
@@ -11,7 +28,7 @@ export function TransformerDetail({ transformerId, onClose }: { transformerId: s
           <span className="text-[11px] font-medium tracking-widest uppercase text-muted-foreground">Transformer Analysis</span>
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-primary" />
-            <CardTitle className="text-xl font-bold">{transformerId}</CardTitle>
+            <CardTitle className="text-xl font-bold">{t.id}</CardTitle>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={onClose} className="gap-2">
@@ -28,19 +45,21 @@ export function TransformerDetail({ transformerId, onClose }: { transformerId: s
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="flex flex-col gap-1">
                 <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Status</span>
-                <Badge variant="outline" className="w-fit border-risk-critical text-risk-critical bg-risk-critical/10 font-bold">CRITICAL</Badge>
+                <Badge variant="outline" className={`w-fit font-bold uppercase ${isHighRisk ? "border-risk-critical text-risk-critical bg-risk-critical/10" : isMediumRisk ? "border-amber-500 text-amber-500 bg-amber-500/10" : "border-emerald-500 text-emerald-500 bg-emerald-500/10"}`}>
+                  {analysis.riskLevel}
+                </Badge>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Risk Score</span>
-                <span className="text-2xl font-black text-foreground">95<span className="text-sm font-medium text-muted-foreground ml-1">/100</span></span>
+                <span className="text-2xl font-black text-foreground">{analysis.riskScore}<span className="text-sm font-medium text-muted-foreground ml-1">/100</span></span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Comm. Loss %</span>
-                <span className="text-2xl font-bold text-foreground">6.7%</span>
+                <span className="text-2xl font-bold text-foreground">{analysis.commercialLossPercentage.toFixed(1)}%</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Location</span>
-                <span className="text-sm font-medium text-foreground mt-1">Bhimavaram Zone 4</span>
+                <span className="text-sm font-medium text-foreground mt-1">{t.area}</span>
               </div>
             </div>
 
@@ -50,17 +69,17 @@ export function TransformerDetail({ transformerId, onClose }: { transformerId: s
               
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-muted-foreground font-medium">Technical Loss (40)</span>
-                  <span className="text-foreground font-bold">Commercial Loss (80)</span>
+                  <span className="text-muted-foreground font-medium">Technical Loss ({t.techLoss})</span>
+                  <span className="text-foreground font-bold">Commercial Loss ({t.commLoss})</span>
                 </div>
                 {/* Visual Bar */}
                 <div className="h-4 w-full flex rounded-sm overflow-hidden bg-surface-3">
-                  <div className="h-full bg-slate-400" style={{ width: "33.3%" }} />
-                  <div className="h-full bg-risk-critical" style={{ width: "66.7%" }} />
+                  <div className="h-full bg-slate-400" style={{ width: `${techLossPct}%` }} />
+                  <div className={`h-full ${isHighRisk ? "bg-risk-critical" : isMediumRisk ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${commLossPct}%` }} />
                 </div>
                 <div className="flex items-center justify-between text-xs mt-1">
-                  <span className="text-muted-foreground">33% of total loss</span>
-                  <span className="text-foreground font-medium">67% of total loss</span>
+                  <span className="text-muted-foreground">{techLossPct.toFixed(0)}% of total loss</span>
+                  <span className="text-foreground font-medium">{commLossPct.toFixed(0)}% of total loss</span>
                 </div>
               </div>
             </div>
@@ -80,7 +99,7 @@ export function TransformerDetail({ transformerId, onClose }: { transformerId: s
             <div className="flex flex-col gap-0 max-w-md">
               <div className="flex items-center justify-between p-3 rounded bg-surface-3">
                 <span className="text-sm font-medium text-foreground">Input Energy</span>
-                <span className="text-sm font-bold">1,200 units</span>
+                <span className="text-sm font-bold">{t.input} units</span>
               </div>
               
               <div className="flex justify-center py-1.5">
@@ -89,7 +108,7 @@ export function TransformerDetail({ transformerId, onClose }: { transformerId: s
               
               <div className="flex items-center justify-between p-3 rounded border border-border/50">
                 <span className="text-sm text-muted-foreground">Expected Technical Loss</span>
-                <span className="text-sm font-medium text-muted-foreground">- 40 units</span>
+                <span className="text-sm font-medium text-muted-foreground">- {t.techLoss} units</span>
               </div>
               
               <div className="flex justify-center py-1.5">
@@ -98,7 +117,7 @@ export function TransformerDetail({ transformerId, onClose }: { transformerId: s
               
               <div className="flex items-center justify-between p-3 rounded bg-primary/5 border border-primary/20">
                 <span className="text-sm font-medium text-primary">Expected Available Energy</span>
-                <span className="text-sm font-bold text-primary">1,160 units</span>
+                <span className="text-sm font-bold text-primary">{expectedAvailable} units</span>
               </div>
               
               <div className="flex justify-center py-1.5">
@@ -107,16 +126,16 @@ export function TransformerDetail({ transformerId, onClose }: { transformerId: s
               
               <div className="flex items-center justify-between p-3 rounded border border-border/50">
                 <span className="text-sm text-muted-foreground">Recorded Consumer Consumption</span>
-                <span className="text-sm font-medium text-muted-foreground">- 1,080 units</span>
+                <span className="text-sm font-medium text-muted-foreground">- {t.consumed} units</span>
               </div>
               
               <div className="flex justify-center py-1.5">
-                <ArrowDown className="h-4 w-4 text-risk-critical/70" />
+                <ArrowDown className={isHighRisk ? "h-4 w-4 text-risk-critical/70" : isMediumRisk ? "h-4 w-4 text-amber-500/70" : "h-4 w-4 text-emerald-500/70"} />
               </div>
               
-              <div className="flex items-center justify-between p-4 rounded bg-risk-critical/10 border border-risk-critical/30">
-                <span className="text-sm font-bold text-risk-critical">Unexplained Commercial Loss</span>
-                <span className="text-sm font-black text-risk-critical">80 units</span>
+              <div className={`flex items-center justify-between p-4 rounded border ${isHighRisk ? "bg-risk-critical/10 border-risk-critical/30" : isMediumRisk ? "bg-amber-500/10 border-amber-500/30" : "bg-emerald-500/10 border-emerald-500/30"}`}>
+                <span className={`text-sm font-bold ${isHighRisk ? "text-risk-critical" : isMediumRisk ? "text-amber-500" : "text-emerald-500"}`}>Unexplained Commercial Loss</span>
+                <span className={`text-sm font-black ${isHighRisk ? "text-risk-critical" : isMediumRisk ? "text-amber-500" : "text-emerald-500"}`}>{t.commLoss} units</span>
               </div>
             </div>
           </div>

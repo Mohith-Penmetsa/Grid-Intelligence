@@ -3,16 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const MOCK_TRANSFORMERS = [
-  { id: "TR-104", area: "Bhimavaram Zone 4", input: 1200, consumed: 1080, techLoss: 40, commLoss: 80, risk: 95, status: "Critical" },
-  { id: "TR-106", area: "Bhimavaram Zone 4", input: 850, consumed: 800, techLoss: 25, commLoss: 25, risk: 44, status: "Medium" },
-  { id: "TR-102", area: "Bhimavaram Zone 4", input: 920, consumed: 880, techLoss: 28, commLoss: 12, risk: 42, status: "Medium" },
-  { id: "TR-105", area: "Bhimavaram Zone 4", input: 1100, consumed: 1060, techLoss: 35, commLoss: 5, risk: 37, status: "Normal" },
-  { id: "TR-101", area: "Bhimavaram Zone 4", input: 780, consumed: 755, techLoss: 22, commLoss: 3, risk: 31, status: "Normal" },
-  { id: "TR-103", area: "Bhimavaram Zone 4", input: 640, consumed: 620, techLoss: 18, commLoss: 2, risk: 28, status: "Normal" },
-];
+import { getAllAnalyzedTransformers } from "@/lib/intelligence/transformer-risk";
 
 export function TransformerRiskTable({ selectedId, onSelect }: { selectedId: string | null, onSelect: (id: string) => void }) {
+  const analyzedData = getAllAnalyzedTransformers();
+  
   return (
     <Card className="bg-surface-2 border-border/50 overflow-hidden">
       <div className="overflow-x-auto">
@@ -31,9 +26,11 @@ export function TransformerRiskTable({ selectedId, onSelect }: { selectedId: str
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
-            {MOCK_TRANSFORMERS.map((t) => {
+            {analyzedData.map((analysis) => {
+              const t = analysis.data;
               const isSelected = selectedId === t.id;
-              const isCritical = t.status === "Critical";
+              const isCritical = analysis.riskLevel === "critical" || analysis.riskLevel === "high";
+              const isMedium = analysis.riskLevel === "medium";
               
               return (
                 <tr 
@@ -55,20 +52,20 @@ export function TransformerRiskTable({ selectedId, onSelect }: { selectedId: str
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
                         <div 
-                          className={cn("h-full rounded-full", isCritical ? "bg-risk-critical" : (t.status === "Medium" ? "bg-amber-400" : "bg-emerald-400"))}
-                          style={{ width: `${t.risk}%` }}
+                          className={cn("h-full rounded-full", isCritical ? "bg-risk-critical" : (isMedium ? "bg-amber-400" : "bg-emerald-400"))}
+                          style={{ width: `${analysis.riskScore}%` }}
                         />
                       </div>
-                      <span className="w-5 text-xs font-semibold text-foreground">{t.risk}</span>
+                      <span className="w-5 text-xs font-semibold text-foreground">{analysis.riskScore}</span>
                     </div>
                   </td>
                   <td className="px-2 py-3">
                     <Badge variant="outline" className={cn(
-                      "font-bold px-1.5 py-0 text-[10px]",
+                      "font-bold px-1.5 py-0 text-[10px] uppercase",
                       isCritical ? "border-risk-critical text-risk-critical bg-risk-critical/10" : 
-                      (t.status === "Medium" ? "border-amber-500/50 text-amber-500 bg-amber-500/10" : "border-emerald-500/50 text-emerald-500 bg-emerald-500/10")
+                      (isMedium ? "border-amber-500/50 text-amber-500 bg-amber-500/10" : "border-emerald-500/50 text-emerald-500 bg-emerald-500/10")
                     )}>
-                      {t.status}
+                      {analysis.riskLevel === "safe" ? "Normal" : analysis.riskLevel}
                     </Badge>
                   </td>
                   <td className="px-2 py-3 text-right">
