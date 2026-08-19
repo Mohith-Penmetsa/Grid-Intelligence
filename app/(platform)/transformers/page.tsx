@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { PageShell } from "@/components/shared/PageShell";
-import { ComingSoon } from "@/components/shared/ComingSoon";
-
-// ─── Metadata ─────────────────────────────────────────────────
+import { TransformerIntelligenceDashboard } from "@/components/transformers/TransformerIntelligenceDashboard";
 
 export const metadata: Metadata = {
   title: "Transformer Intelligence",
@@ -10,15 +8,13 @@ export const metadata: Metadata = {
     "Risk-ranked transformer analysis with commercial loss assessment and inspection prioritization.",
 };
 
-// ─── Transformers Page ────────────────────────────────────────
-
 export default function TransformersPage() {
   return (
     <PageShell
       title="Transformer Intelligence"
-      description="Risk-ranked analysis of distribution transformers. Identify commercial losses and prioritize inspections."
+      description="Analyze transformer behavior, detect abnormal loss patterns, and prioritize field action."
     >
-      <ComingSoon milestone="Milestone 4 — Transformer Intelligence" />
+      <TransformerIntelligenceDashboard />
     </PageShell>
   );
 }
