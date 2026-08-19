@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageShell } from "@/components/shared/PageShell";
-import { ComingSoon } from "@/components/shared/ComingSoon";
+import { OperationsDashboard } from "@/components/operations/OperationsDashboard";
 
 // ─── Metadata ─────────────────────────────────────────────────
 
@@ -18,7 +18,7 @@ export default function OperationsPage() {
       title="Operations Center"
       description="Command view of all active operations, high-risk areas, and ongoing inspections."
     >
-      <ComingSoon milestone="Milestone 3 — Operations Dashboard" />
+      <OperationsDashboard />
     </PageShell>
   );
 }

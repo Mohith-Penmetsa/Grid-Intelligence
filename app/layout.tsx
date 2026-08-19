@@ -53,7 +53,7 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
       data-scroll-behavior="smooth"
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`dark ${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="min-h-dvh m-0 p-0 antialiased overflow-x-hidden">
         <TooltipProvider>{children}</TooltipProvider>

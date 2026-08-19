@@ -82,15 +82,35 @@ export function Topbar() {
       </div>
 
       {/* Right: Global Actions */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Notifications"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-        >
-          <Bell className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center gap-6">
+        {/* System Status */}
+        <div className="hidden items-center gap-2 md:flex">
+          <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+          <span className="text-[12px] font-medium text-muted-foreground">
+            Grid Intelligence Online
+          </span>
+        </div>
+
+        {/* Date / Time */}
+        <div className="hidden text-[12px] font-medium text-muted-foreground lg:block">
+          {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "numeric" })}
+        </div>
+
+        <div className="h-4 w-px bg-border" />
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Notifications"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <Bell className="h-4 w-4" />
+          </Button>
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-[11px] font-bold text-primary">
+            GI
+          </div>
+        </div>
       </div>
     </header>
   );
