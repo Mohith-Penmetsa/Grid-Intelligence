@@ -19,15 +19,15 @@ export function TransformerRiskTable({ selectedId, onSelect }: { selectedId: str
         <table className="w-full text-sm text-left">
           <thead className="text-[11px] uppercase tracking-wider text-muted-foreground bg-surface-3/50 border-b border-border/50">
             <tr>
-              <th className="px-4 py-3 font-medium">Transformer ID</th>
-              <th className="px-4 py-3 font-medium">Area</th>
-              <th className="px-4 py-3 font-medium text-right">Input</th>
-              <th className="px-4 py-3 font-medium text-right">Consumption</th>
-              <th className="px-4 py-3 font-medium text-right">Tech Loss</th>
-              <th className="px-4 py-3 font-medium text-right">Comm Loss</th>
-              <th className="px-4 py-3 font-medium text-center">Risk Score</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium text-right">Action</th>
+              <th className="px-2 py-3 font-medium whitespace-nowrap min-w-[110px]">Transformer ID</th>
+              <th className="px-2 py-3 font-medium">Area</th>
+              <th className="px-2 py-3 font-medium text-right">Input</th>
+              <th className="px-2 py-3 font-medium text-right">Consumption</th>
+              <th className="px-2 py-3 font-medium text-right">Tech Loss</th>
+              <th className="px-2 py-3 font-medium text-right">Comm Loss</th>
+              <th className="px-2 py-3 font-medium text-center">Risk Score</th>
+              <th className="px-2 py-3 font-medium">Status</th>
+              <th className="px-2 py-3 font-medium text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
@@ -41,38 +41,38 @@ export function TransformerRiskTable({ selectedId, onSelect }: { selectedId: str
                   onClick={() => onSelect(t.id)}
                   className={cn(
                     "transition-colors cursor-pointer hover:bg-surface-3",
-                    isSelected && "bg-surface-3 border-l-2 border-l-primary",
-                    !isSelected && "border-l-2 border-l-transparent"
+                    isSelected && "bg-primary/10 border-l-4 border-l-primary",
+                    !isSelected && "border-l-4 border-l-transparent"
                   )}
                 >
-                  <td className="px-4 py-3 font-medium whitespace-nowrap text-foreground">{t.id}</td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{t.area}</td>
-                  <td className="px-4 py-3 text-right">{t.input}</td>
-                  <td className="px-4 py-3 text-right">{t.consumed}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">{t.techLoss}</td>
-                  <td className="px-4 py-3 text-right font-medium text-amber-400">{t.commLoss}</td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-2 py-3 font-medium whitespace-nowrap text-foreground">{t.id}</td>
+                  <td className="px-2 py-3 text-muted-foreground min-w-[120px]">{t.area}</td>
+                  <td className="px-2 py-3 text-right">{t.input}</td>
+                  <td className="px-2 py-3 text-right">{t.consumed}</td>
+                  <td className="px-2 py-3 text-right text-muted-foreground">{t.techLoss}</td>
+                  <td className="px-2 py-3 text-right font-medium text-amber-400">{t.commLoss}</td>
+                  <td className="px-2 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
                         <div 
                           className={cn("h-full rounded-full", isCritical ? "bg-risk-critical" : (t.status === "Medium" ? "bg-amber-400" : "bg-emerald-400"))}
                           style={{ width: `${t.risk}%` }}
                         />
                       </div>
-                      <span className="w-6 text-xs font-semibold text-foreground">{t.risk}</span>
+                      <span className="w-5 text-xs font-semibold text-foreground">{t.risk}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-3">
                     <Badge variant="outline" className={cn(
-                      "font-bold",
+                      "font-bold px-1.5 py-0 text-[10px]",
                       isCritical ? "border-risk-critical text-risk-critical bg-risk-critical/10" : 
                       (t.status === "Medium" ? "border-amber-500/50 text-amber-500 bg-amber-500/10" : "border-emerald-500/50 text-emerald-500 bg-emerald-500/10")
                     )}>
                       {t.status}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm" className="h-8 text-[12px]">
+                  <td className="px-2 py-3 text-right">
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]">
                       Analyze
                     </Button>
                   </td>

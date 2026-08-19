@@ -19,7 +19,7 @@ const KPIS = [
   },
   {
     label: "Commercial Loss Detected",
-    value: "?18.4L",
+    value: "₹218.4L",
     icon: IndianRupee,
     colorClass: "text-amber-400",
     bgClass: "bg-amber-400/10",
