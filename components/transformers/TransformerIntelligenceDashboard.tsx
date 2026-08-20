@@ -1,18 +1,25 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Activity, AlertTriangle, Zap, ServerCrash } from "lucide-react";
 import { IntelligenceTable } from "./IntelligenceTable";
 import { IntelligenceDetail } from "./IntelligenceDetail";
-import { getAllAnalyzedTransformers } from "@/lib/intelligence/transformer-risk";
+import { useGridState } from "@/lib/store/grid-context";
+import { calculateTransformerRisk } from "@/lib/intelligence/risk-engine";
 
 export function TransformerIntelligenceDashboard() {
   const [selectedTransformerId, setSelectedTransformerId] = useState<string | null>(null);
   const analysisRef = useRef<HTMLDivElement>(null);
 
-  const data = getAllAnalyzedTransformers();
-  const selectedAnalysis = selectedTransformerId ? data.find((a) => a.data.id === selectedTransformerId) : null;
+  const { transformers, consumers, settings } = useGridState();
+
+  const data = transformers.map(t => ({
+    transformer: t,
+    risk: calculateTransformerRisk(t, consumers, settings)
+  })).sort((a, b) => b.risk.score - a.risk.score);
+
+  const selectedAnalysis = selectedTransformerId ? data.find((a) => a.transformer.id === selectedTransformerId) : null;
 
   useEffect(() => {
     if (selectedTransformerId && analysisRef.current) {
@@ -22,14 +29,13 @@ export function TransformerIntelligenceDashboard() {
 
   const stats = {
     total: data.length,
-    critical: data.filter((d) => d.riskLevel === "critical").length,
-    high: data.filter((d) => d.riskLevel === "high").length,
-    abnormal: data.filter((d) => d.commercialLossPercentage > 2.5).length,
+    critical: data.filter((d) => d.risk.level === "critical").length,
+    high: data.filter((d) => d.risk.level === "high").length,
+    abnormal: data.filter((d) => d.transformer.commLoss / d.transformer.input > 0.025).length,
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      {/* KPI Overview */}
+    <div className="flex flex-col gap-6 animate-in fade-in duration-500 pb-10">
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-surface-2 border-border/50">
           <CardContent className="p-5 flex flex-col gap-3">
@@ -88,7 +94,6 @@ export function TransformerIntelligenceDashboard() {
         </Card>
       </section>
 
-      {/* Main Table */}
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold tracking-tight text-foreground/90 uppercase">
@@ -102,11 +107,11 @@ export function TransformerIntelligenceDashboard() {
         />
       </section>
 
-      {/* Expandable Analysis Section */}
       <section className="w-full scroll-mt-24" ref={analysisRef}>
         {selectedAnalysis ? (
           <IntelligenceDetail 
-            analysis={selectedAnalysis} 
+            transformer={selectedAnalysis.transformer} 
+            risk={selectedAnalysis.risk}
             onClose={() => setSelectedTransformerId(null)} 
           />
         ) : (
@@ -120,3 +125,4 @@ export function TransformerIntelligenceDashboard() {
     </div>
   );
 }
+

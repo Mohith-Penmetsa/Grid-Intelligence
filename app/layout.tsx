@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { APP_FULL_NAME, APP_DESCRIPTION } from "@/lib/constants";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { GridProvider } from "@/lib/store/grid-context";
 
 // ─── Fonts ────────────────────────────────────────────────────
 
@@ -56,7 +57,9 @@ export default function RootLayout({
       className={`dark ${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="min-h-dvh m-0 p-0 antialiased overflow-x-hidden">
-        <TooltipProvider>{children}</TooltipProvider>
+        <GridProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </GridProvider>
       </body>
     </html>
   );

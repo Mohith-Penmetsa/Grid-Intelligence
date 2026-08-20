@@ -1,11 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Activity, AlertTriangle, Zap, IndianRupee } from "lucide-react";
 import { ConsumerTable } from "./ConsumerTable";
 import { ConsumerDetail } from "./ConsumerDetail";
-import { getAllAnalyzedConsumers, ConsumerRiskAnalysis } from "@/lib/intelligence/consumer-risk";
+import { useGridState } from "@/lib/store/grid-context";
+import { calculateConsumerRisk } from "@/lib/intelligence/risk-engine";
 import { Badge } from "@/components/ui/badge";
 
 export function ConsumerIntelligenceDashboard() {
@@ -13,17 +14,24 @@ export function ConsumerIntelligenceDashboard() {
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const analysisRef = useRef<HTMLDivElement>(null);
 
-  const allData = getAllAnalyzedConsumers();
+  const { consumers, settings } = useGridState();
+
+  const allData = useMemo(() => {
+    return consumers.map(c => ({
+      consumer: c,
+      risk: calculateConsumerRisk(c, settings)
+    })).sort((a, b) => b.risk.score - a.risk.score);
+  }, [consumers, settings]);
 
   const filteredData = useMemo(() => {
-    if (activeFilter === "critical") return allData.filter(d => d.riskLevel === "critical");
-    if (activeFilter === "high") return allData.filter(d => d.riskLevel === "high");
-    if (activeFilter === "abnormal") return allData.filter(d => d.deviationPercentage > 20);
+    if (activeFilter === "critical") return allData.filter(d => d.risk.level === "critical");
+    if (activeFilter === "high") return allData.filter(d => d.risk.level === "high");
+    if (activeFilter === "abnormal") return allData.filter(d => (d.consumer.expectedConsumption - d.consumer.actualConsumption) / d.consumer.expectedConsumption > 0.2);
     return allData;
   }, [allData, activeFilter]);
 
   const selectedAnalysis = useMemo(() => {
-    return selectedConsumerId ? allData.find((a) => a.data.id === selectedConsumerId) : null;
+    return selectedConsumerId ? allData.find((a) => a.consumer.id === selectedConsumerId) : null;
   }, [selectedConsumerId, allData]);
 
   useEffect(() => {
@@ -34,13 +42,13 @@ export function ConsumerIntelligenceDashboard() {
 
   const stats = {
     total: allData.length,
-    highRisk: allData.filter((d) => d.riskLevel === "critical" || d.riskLevel === "high").length,
-    abnormal: allData.filter((d) => d.deviationPercentage > 20).length,
-    exposure: allData.reduce((acc, curr) => acc + curr.commercialLossExposure, 0),
+    highRisk: allData.filter((d) => d.risk.level === "critical" || d.risk.level === "high").length,
+    abnormal: allData.filter((d) => (d.consumer.expectedConsumption - d.consumer.actualConsumption) / d.consumer.expectedConsumption > 0.2).length,
+    exposure: allData.reduce((acc, curr) => acc + Math.max(0, curr.consumer.expectedConsumption - curr.consumer.actualConsumption), 0),
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-500 pb-10">
       {/* KPI Overview */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-surface-2 border-border/50">
@@ -144,7 +152,8 @@ export function ConsumerIntelligenceDashboard() {
       <section className="w-full scroll-mt-24" ref={analysisRef}>
         {selectedAnalysis ? (
           <ConsumerDetail 
-            analysis={selectedAnalysis} 
+            consumer={selectedAnalysis.consumer} 
+            risk={selectedAnalysis.risk}
             onClose={() => setSelectedConsumerId(null)} 
           />
         ) : (
@@ -158,3 +167,4 @@ export function ConsumerIntelligenceDashboard() {
     </div>
   );
 }
+

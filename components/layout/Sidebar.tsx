@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -12,9 +12,10 @@ import {
   BarChart3,
   ChevronRight,
   Activity,
+  Map,
+  Briefcase,
+  Settings
 } from "lucide-react";
-
-// ─── Icon Map ────────────────────────────────────────────────
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -22,9 +23,10 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Users,
   ClipboardCheck,
   BarChart3,
+  Map,
+  Briefcase,
+  Settings
 };
-
-// ─── Component ───────────────────────────────────────────────
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -36,7 +38,6 @@ export function Sidebar() {
         "bg-sidebar text-sidebar-foreground shrink-0"
       )}
     >
-      {/* Brand */}
       <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-5">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
           <Activity className="h-4 w-4 text-primary-foreground" />
@@ -48,7 +49,6 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Navigation */}
       <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">
         {PLATFORM_NAV.map((group) => (
           <div key={group.label} className="flex flex-col gap-0.5">
@@ -94,8 +94,6 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-
-      {/* Footer */}
       <div className="border-t border-sidebar-border px-4 py-3">
         <p className="text-[11px] text-muted-foreground/50">
           DISCOM Operations Platform
@@ -104,3 +102,4 @@ export function Sidebar() {
     </aside>
   );
 }
+

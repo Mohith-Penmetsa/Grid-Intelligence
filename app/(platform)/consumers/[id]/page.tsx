@@ -1,38 +1,41 @@
-import type { Metadata } from "next";
+"use client";
+
 import { PageShell } from "@/components/shared/PageShell";
-import { ComingSoon } from "@/components/shared/ComingSoon";
+import { ConsumerDetail } from "@/components/consumers/ConsumerDetail";
+import { useGridState } from "@/lib/store/grid-context";
+import { calculateConsumerRisk } from "@/lib/intelligence/risk-engine";
+import { useRouter, useParams } from "next/navigation";
 
-// ─── Types ────────────────────────────────────────────────────
+export default function ConsumerDetailPage() {
+  const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
+  
+  const { consumers, settings } = useGridState();
+  const consumer = consumers.find(c => c.id === id);
 
-interface ConsumerDetailPageProps {
-  params: Promise<{ id: string }>;
-}
+  if (!consumer) {
+    return (
+      <PageShell title={`Consumer Not Found`} description={`Could not locate consumer ${id}`}>
+        <div className="flex h-[300px] items-center justify-center rounded-lg border border-border border-dashed bg-surface-2/30">
+          <p className="text-sm text-muted-foreground">Consumer {id} does not exist in the current grid context.</p>
+        </div>
+      </PageShell>
+    );
+  }
 
-// ─── Metadata ─────────────────────────────────────────────────
-
-export async function generateMetadata({
-  params,
-}: ConsumerDetailPageProps): Promise<Metadata> {
-  const { id } = await params;
-  return {
-    title: `Consumer ${id}`,
-    description: `Explainable risk profile and inspection history for consumer ${id}.`,
-  };
-}
-
-// ─── Consumer Detail Page ─────────────────────────────────────
-
-export default async function ConsumerDetailPage({
-  params,
-}: ConsumerDetailPageProps) {
-  const { id } = await params;
+  const risk = calculateConsumerRisk(consumer, settings);
 
   return (
     <PageShell
       title={`Consumer ${id}`}
       description="Explainable risk signals, consumption patterns, and inspection history."
     >
-      <ComingSoon milestone="Milestone 5 — Consumer Detail & Explainability" />
+      <ConsumerDetail 
+        consumer={consumer} 
+        risk={risk} 
+        onClose={() => router.back()} 
+      />
     </PageShell>
   );
 }

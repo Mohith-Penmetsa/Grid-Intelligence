@@ -1,75 +1,60 @@
-import { useState, useEffect } from "react";
+﻿"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ChevronUp, ClipboardCheck, AlertTriangle, ShieldAlert, FileText, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { InspectionData, InspectionStatus, MOCK_OFFICERS } from "@/lib/intelligence/inspection-data";
-import { getAllAnalyzedConsumers } from "@/lib/intelligence/consumer-risk";
-import { getAllAnalyzedTransformers } from "@/lib/intelligence/transformer-risk";
+import { Button } from "@/components/ui/button";
+import { Inspection } from "@/lib/store/types";
+import { ClipboardCheck, Map, ChevronUp, AlertTriangle, UserPlus, PlayCircle, CheckCircle2 } from "lucide-react";
+import { useGridState } from "@/lib/store/grid-context";
+import { calculateTransformerRisk } from "@/lib/intelligence/risk-engine";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { CameraModal } from "@/components/workspace/CameraModal";
 
-export function InspectionDetail({ inspection, onClose, onUpdateStatus }: { inspection: InspectionData, onClose: () => void, onUpdateStatus: (id: string, status: InspectionStatus, officer?: string) => void }) {
-  const [selectedOfficer, setSelectedOfficer] = useState<string>(inspection.assignedOfficer || "");
+export function InspectionDetail({ 
+  inspection, 
+  onClose 
+}: { 
+  inspection: Inspection, 
+  onClose: () => void 
+}) {
+  const router = useRouter();
+  const { transformers, consumers, officers, settings, assignOfficer, startInspection } = useGridState();
+  const [previewMedia, setPreviewMedia] = useState<string | null>(null);
+
+  const transformer = transformers.find(t => t.id === inspection.transformerId);
+  const tRisk = transformer ? calculateTransformerRisk(transformer, consumers, settings).level : "unknown";
   
-  useEffect(() => {
-    setSelectedOfficer(inspection.assignedOfficer || "");
-  }, [inspection.id, inspection.assignedOfficer]);
+  const isCritical = inspection.priority === "critical";
+  const assignedOfficerObj = officers.find(o => o.id === inspection.officerId);
 
-  const allConsumers = getAllAnalyzedConsumers();
-  const allTransformers = getAllAnalyzedTransformers();
-  
-  const consumerAnalysis = allConsumers.find(c => c.data.id === inspection.consumerId);
-  const transformerAnalysis = allTransformers.find(t => t.data.id === consumerAnalysis?.data.transformerId);
+  const totalPhotos = inspection.evidence.reduce((acc, ev) => acc + (ev.media?.length || 0), 0);
 
-  const expectedConsumption = consumerAnalysis?.data.expectedConsumption || 0;
-  const observedConsumption = consumerAnalysis?.data.actualConsumption || 0;
-  const deviationPercentage = expectedConsumption > 0 ? ((expectedConsumption - observedConsumption) / expectedConsumption) * 100 : 0;
-  const commercialLossExposure = consumerAnalysis?.commercialLossExposure || 0;
-  
-  const transformerId = transformerAnalysis?.data.id || "Unknown";
-  const area = consumerAnalysis?.data.area || "Unknown";
-  const transformerRiskScore = transformerAnalysis?.riskScore || 0;
-  const transformerRiskLevel = transformerAnalysis?.riskLevel || "safe";
+  const getOutcomeBadge = (predicted: string | undefined, actual: string | undefined) => {
+    if (!predicted || !actual) return null;
+    if (actual === "other") return <Badge className="bg-surface-3 text-muted-foreground border-border text-[9px] mt-2">UNRESOLVED / NOT EVALUATED</Badge>;
+    const isPredictedIssue = predicted !== "no_issue" && predicted !== "safe";
+    const isActualIssue = actual !== "no_issue";
 
-  const isHighRisk = inspection.priority === "critical" || inspection.priority === "high";
-
-  const handleAssign = () => {
-    if (selectedOfficer) {
-      onUpdateStatus(inspection.id, "assigned", selectedOfficer);
-    }
-  };
-
-  const getRecommendation = () => {
-    if (inspection.status === "completed") {
-      return "Inspection completed. Review the field evidence for final outcome.";
-    }
-    switch (inspection.priority) {
-      case "critical":
-        return "High-priority field inspection recommended because recorded consumption is substantially below the expected baseline and the associated transformer shows elevated commercial loss.";
-      case "high":
-        return "High-priority field inspection recommended. Anomalous behavior exceeds normal variance.";
-      case "medium":
-        return "Targeted field inspection recommended to verify meter functionality and investigate moderate consumption deviations.";
-      case "low":
-      default:
-        return "Routine monitoring and verification recommended. No critical anomalies detected.";
-    }
-  };
-
-  const getExpectedOutcome = () => {
-    if (inspection.status === "completed") {
-      return "Completed.";
-    }
-    return isHighRisk ? "Meter tampering or unmetered bypass." : "Routine verification of meter health.";
+    if (isPredictedIssue && isActualIssue) return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] mt-2">TRUE POSITIVE</Badge>;
+    if (isPredictedIssue && !isActualIssue) return <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20 text-[9px] mt-2">FALSE POSITIVE</Badge>;
+    if (!isPredictedIssue && isActualIssue) return <Badge className="bg-risk-critical/10 text-risk-critical border-risk-critical/20 text-[9px] mt-2">FALSE NEGATIVE</Badge>;
+    return null;
   };
 
   return (
+    <>
     <Card className="bg-surface-2 border-border/50 animate-in slide-in-from-top-4 fade-in duration-300">
       <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border/50">
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] font-medium tracking-widest uppercase text-muted-foreground">Transformer / Field Inspection</span>
+          <span className="text-[11px] font-medium tracking-widest uppercase text-muted-foreground">Inspection Detail</span>
           <div className="flex items-center gap-2">
             <ClipboardCheck className="h-5 w-5 text-primary" />
             <CardTitle className="text-xl font-bold">{inspection.id}</CardTitle>
+            <Badge variant="outline" className={`ml-2 uppercase text-[10px] ${isCritical ? "text-risk-critical border-risk-critical/30" : "text-amber-500 border-amber-500/30"}`}>
+              {inspection.priority}
+            </Badge>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={onClose} className="gap-2">
@@ -80,211 +65,167 @@ export function InspectionDetail({ inspection, onClose, onUpdateStatus }: { insp
       <CardContent className="p-0">
         <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border/50">
           
-          {/* Left Column: Context & Evidence */}
+          {/* Left Column */}
           <div className="flex flex-col p-6 gap-8">
-            {/* Top metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
                 <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Status</span>
-                <Badge variant="outline" className={`w-fit mt-1 font-bold uppercase border-primary/50 text-primary bg-primary/10`}>
-                  {inspection.status.replace("_", " ")}
-                </Badge>
+                <span className="text-lg font-bold uppercase mt-1 text-foreground">{inspection.status.replace("_", " ")}</span>
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Priority</span>
-                <span className={`text-xl font-bold uppercase ${isHighRisk ? "text-risk-critical" : inspection.priority === "medium" ? "text-amber-500" : "text-emerald-500"}`}>{inspection.priority}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Risk Score</span>
-                <span className="text-xl font-black text-foreground">{inspection.riskScore}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Consumer ID</span>
-                <span className="text-sm font-medium text-foreground mt-1">{inspection.consumerId}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Transformer ID</span>
-                <span className="text-sm font-medium text-foreground mt-1">{transformerId}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Area</span>
-                <span className="text-sm font-medium text-foreground mt-1">{area}</span>
-              </div>
-            </div>
-
-            {/* Why created */}
-            <div className="flex flex-col mt-4">
-              <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-4 font-semibold">Primary Trigger</h3>
-              <div className="flex flex-col gap-3 p-4 rounded-lg bg-surface-3/50 border border-border/50">
-                <div className="flex items-center gap-2 text-foreground font-semibold">
-                  <AlertTriangle className={isHighRisk ? "text-risk-critical" : "text-amber-500"} size={16} />
-                  {inspection.triggerReason}
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mt-2">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Observed:</span>
-                    <span className="text-sm font-medium">{observedConsumption} units</span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Expected:</span>
-                    <span className="text-sm font-medium">{expectedConsumption} units</span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Deviation:</span>
-                    <span className={`text-sm font-bold ${deviationPercentage > 20 ? "text-risk-critical" : "text-amber-500"}`}>{deviationPercentage.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Commercial Loss Exposure:</span>
-                    <span className="text-sm font-medium">{commercialLossExposure} units</span>
-                  </div>
-                </div>
-
-                <div className="h-px bg-border/50 my-2"></div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Transformer Risk ({transformerId}):</span>
-                  <Badge variant="outline" className={`text-[10px] uppercase font-bold ${
-                    transformerRiskLevel === "critical" || transformerRiskLevel === "high" 
-                      ? "border-risk-critical text-risk-critical bg-risk-critical/10" 
-                      : transformerRiskLevel === "medium" 
-                        ? "border-amber-500 text-amber-500 bg-amber-500/10" 
-                        : "border-emerald-500 text-emerald-500 bg-emerald-500/10"
-                  }`}>
-                    {transformerRiskScore} / 100 — {transformerRiskLevel}
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Target Transformer</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-lg font-bold text-primary hover:underline cursor-pointer" onClick={() => router.push(`/transformers/${inspection.transformerId}`)}>
+                    {inspection.transformerId}
+                  </span>
+                  <Badge variant="outline" className={`text-[10px] uppercase ${tRisk === "critical" ? "text-risk-critical border-risk-critical/30 bg-risk-critical/10" : ""}`}>
+                    {tRisk} Risk
                   </Badge>
                 </div>
               </div>
             </div>
 
-            {/* Field Evidence */}
-            <div className="flex flex-col mt-4">
-              <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-4 font-semibold">Field Evidence Verification</h3>
-              <div className="flex flex-col gap-2">
-                {inspection.evidence.map((ev, idx) => {
-                  let colorClass = "text-muted-foreground border-border/50";
-                  if (ev.status === "verified") colorClass = "text-emerald-500 border-emerald-500/30 bg-emerald-500/5";
-                  if (ev.status === "flagged") colorClass = "text-risk-critical border-risk-critical/30 bg-risk-critical/5";
-                  
-                  return (
-                    <div key={idx} className={`flex items-center justify-between p-3 rounded border ${colorClass}`}>
-                      <div className="flex items-center gap-3">
-                        {ev.status === "verified" ? <CheckCircle2 className="h-4 w-4" /> : 
-                         ev.status === "flagged" ? <AlertTriangle className="h-4 w-4" /> : 
-                         <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30" />}
-                        <span className="text-sm font-medium text-foreground">{ev.label}</span>
-                      </div>
-                      <Badge variant="secondary" className="text-[10px] uppercase bg-surface-3">
-                        {ev.status.replace("_", " ")}
-                      </Badge>
-                    </div>
-                  );
-                })}
+            <div className="flex flex-col gap-3">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2"><AlertTriangle size={14}/> AI Prediction & Trigger</h3>
+              <div className="p-3 rounded-lg bg-surface-3/50 border border-border/50 flex flex-col gap-2">
+                <span className="text-sm text-foreground">{inspection.triggerReason}</span>
+                {inspection.predictedRiskType && (
+                  <span className="text-xs text-muted-foreground mt-1">
+                    Model predicted: <strong className="uppercase">{inspection.predictedRiskType.replace("_", " ")}</strong> (Confidence/Risk: {inspection.predictedRiskScore})
+                  </span>
+                )}
               </div>
-              {inspection.officerNotes && (
-                <div className="mt-4 p-4 bg-surface-3/30 border border-border/50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs font-semibold text-foreground">Officer Notes</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground italic">"{inspection.officerNotes}"</p>
-                </div>
-              )}
             </div>
+
+            <div className="flex flex-col gap-3">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2"><ClipboardCheck size={14}/> Target Consumers</h3>
+              <div className="flex flex-wrap gap-2">
+                {inspection.consumerIds.map(cid => (
+                  <Badge key={cid} variant="secondary" className="cursor-pointer hover:bg-primary/20" onClick={() => router.push(`/consumers/${cid}`)}>
+                    {cid}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            
+            {inspection.status === "completed" && (
+               <div className="flex flex-col gap-4 p-4 rounded-lg bg-surface-3 border border-border/50">
+                 <div className="flex flex-col gap-2">
+                   <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2"><CheckCircle2 size={14}/> Field Observations</h3>
+                   <p className="text-sm italic text-foreground">"{inspection.fieldObservations || "No remarks provided"}"</p>
+                 </div>
+                 
+                 <div className="flex flex-col gap-2 border-t border-border/30 pt-3">
+                   <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Structured Outcome</h3>
+                   <span className="text-sm font-bold uppercase">
+                     {(inspection as any).actualFinding ? (inspection as any).actualFinding.replace("_", " ") : "CONFIRMED"}
+                   </span>
+                   {getOutcomeBadge(inspection.predictedRiskType, (inspection as any).actualFinding)}
+                 </div>
+               </div>
+            )}
           </div>
 
-          {/* Right Column: Workflow & Assignment */}
-          <div className="flex flex-col p-6 gap-8">
-            
-            <div className="flex flex-col rounded-lg border border-border/50 bg-surface-3/30 p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <ShieldAlert className={
-                  inspection.status === "completed" ? "text-emerald-500" :
-                  isHighRisk ? "h-5 w-5 text-risk-critical" : 
-                  inspection.priority === "medium" ? "h-5 w-5 text-amber-500" : "h-5 w-5 text-emerald-500"
-                } />
-                <h3 className="text-sm font-semibold text-foreground">
-                  {inspection.status === "completed" ? "Completed Inspection" : "Recommended Field Action"}
-                </h3>
-                {inspection.status !== "completed" && (
-                  <Badge variant="secondary" className="ml-auto text-[10px] bg-primary/10 text-primary border-0">Model-ready recommendation</Badge>
-                )}
+          {/* Right Column */}
+          <div className="flex flex-col p-6 gap-6">
+            <div className="flex flex-col rounded-lg border border-border/50 bg-surface-3/30 p-5 gap-4">
+              <div className="flex items-center gap-2 mb-1">
+                <UserPlus className="h-5 w-5 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Field Assignment</h3>
               </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                {getRecommendation()}
-              </p>
-              {inspection.status !== "completed" && (
-                <span className="text-xs text-foreground font-medium">Expected Investigation Outcome: <span className="text-muted-foreground font-normal">{getExpectedOutcome()}</span></span>
+              
+              {inspection.status === "pending" ? (
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-muted-foreground">Assign a field officer to dispatch this inspection.</p>
+                  <Select onValueChange={(val) => assignOfficer(inspection.id, val)}>
+                    <SelectTrigger className="w-full bg-surface-1">
+                      <SelectValue placeholder="Select Officer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {officers.map(o => (
+                        <SelectItem key={o.id} value={o.id}>{o.name} ({o.role})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between p-3 rounded bg-surface-2 border border-border/50">
+                    <span className="text-sm font-medium text-foreground">{assignedOfficerObj?.name}</span>
+                    <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{assignedOfficerObj?.role}</Badge>
+                  </div>
+                  
+                  {inspection.status === "assigned" && (
+                    <Button className="w-full bg-primary hover:bg-primary/90 mt-2 gap-2" onClick={() => startInspection(inspection.id)}>
+                      <PlayCircle className="h-4 w-4" /> Start Inspection
+                    </Button>
+                  )}
+                  {inspection.status === "in_progress" && (
+                    <Button className="w-full bg-amber-500 hover:bg-amber-600 text-amber-950 mt-2 gap-2" onClick={() => router.push(`/workspace`)}>
+                      <ClipboardCheck className="h-4 w-4" /> Open Inspector Workspace
+                    </Button>
+                  )}
+                  {inspection.status === "completed" && (
+                    <Button variant="outline" className="w-full mt-2" disabled>
+                      Inspection Completed
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
 
-            <div className="flex flex-col gap-4">
-              <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Inspection Workflow</h3>
-              
-              {/* Assignment */}
-              <div className="flex flex-col gap-2 p-4 border border-border/50 rounded-lg bg-surface-2">
-                <span className="text-xs font-semibold text-foreground">Assign Officer</span>
-                <div className="flex gap-2">
-                  <select 
-                    className="flex-1 h-9 rounded-md border border-border/50 bg-surface-1 px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-                    value={selectedOfficer}
-                    onChange={(e) => setSelectedOfficer(e.target.value)}
-                    disabled={inspection.status === "completed" || inspection.status === "cancelled"}
-                  >
-                    <option value="">-- Select Officer --</option>
-                    {MOCK_OFFICERS.map(o => (
-                      <option key={o} value={o}>{o}</option>
-                    ))}
-                  </select>
-                  <Button 
-                    size="sm" 
-                    onClick={handleAssign}
-                    disabled={!selectedOfficer || selectedOfficer === inspection.assignedOfficer || inspection.status === "completed"}
-                  >
-                    Assign
-                  </Button>
+            <div className="flex flex-col rounded-lg border border-border/50 bg-surface-3/30 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold text-foreground">Evidence Log</h3>
                 </div>
-                {inspection.assignedOfficer && (
-                  <span className="text-xs text-muted-foreground mt-1">Currently assigned to: <strong className="text-foreground">{inspection.assignedOfficer}</strong></span>
-                )}
+                <Badge variant="outline" className="text-[10px]">{totalPhotos} Photos</Badge>
               </div>
-
-              {/* Status Actions */}
-              <div className="flex flex-col gap-2 p-4 border border-border/50 rounded-lg bg-surface-2">
-                <span className="text-xs font-semibold text-foreground">Update Status</span>
-                
-                {inspection.status === "completed" ? (
-                  <div className="flex items-center gap-2 p-3 mt-2 rounded bg-emerald-500/10 border border-emerald-500/30">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    <span className="text-sm font-medium text-emerald-500">Inspection successfully marked completed.</span>
+              
+              <div className="flex flex-col gap-3">
+                {inspection.evidence.map(ev => (
+                  <div key={ev.id} className="flex flex-col gap-2 p-3 rounded border border-border/30 bg-surface-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground">{ev.label}</span>
+                      <Badge variant="outline" className={`text-[9px] uppercase ${ev.status === "verified" ? "text-emerald-500 border-emerald-500/30" : "text-muted-foreground"}`}>
+                        {ev.status}
+                      </Badge>
+                    </div>
+                    {ev.media && ev.media.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {ev.media.map((m, idx) => (
+                          <div 
+                            key={m.id} 
+                            className="w-12 h-12 rounded border border-border overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary"
+                            onClick={() => setPreviewMedia(m.url)}
+                          >
+                            <img src={m.url} alt={`Evidence ${idx+1}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <Button 
-                      variant={inspection.status === "in_progress" ? "default" : "outline"}
-                      className={inspection.status === "in_progress" ? "bg-purple-500 hover:bg-purple-600 text-white" : ""}
-                      disabled={!inspection.assignedOfficer}
-                      onClick={() => onUpdateStatus(inspection.id, "in_progress")}
-                    >
-                      {inspection.status === "in_progress" ? "Update Evidence" : "Start Inspection"}
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      className=""
-                      disabled={inspection.status !== "in_progress"}
-                      onClick={() => onUpdateStatus(inspection.id, "completed")}
-                    >
-                      Mark Completed
-                    </Button>
-                  </div>
-                )}
+                ))}
               </div>
             </div>
 
+            <Button variant="ghost" className="w-full gap-2 border border-border/50 hover:bg-surface-3" onClick={() => router.push(`/map?focus=${inspection.transformerId}`)}>
+              <Map className="h-4 w-4" /> View Location on Map
+            </Button>
           </div>
 
         </div>
       </CardContent>
     </Card>
+
+    {previewMedia && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm animate-in fade-in" onClick={() => setPreviewMedia(null)}>
+        <img src={previewMedia} alt="Evidence preview" className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+      </div>
+    )}
+    </>
   );
 }
+
+

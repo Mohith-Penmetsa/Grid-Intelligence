@@ -1,18 +1,39 @@
 ﻿import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { InspectionData } from "@/lib/intelligence/inspection-data";
-import { getAllAnalyzedConsumers } from "@/lib/intelligence/consumer-risk";
+import { Inspection } from "@/lib/store/types";
+import { useGridState } from "@/lib/store/grid-context";
+import { calculateTransformerRisk } from "@/lib/intelligence/risk-engine";
 
 interface InspectionTableProps {
-  data: InspectionData[];
+  data: Inspection[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
 
 export function InspectionTable({ data, selectedId, onSelect }: InspectionTableProps) {
-  const allConsumers = getAllAnalyzedConsumers();
+  const { transformers, consumers, officers, settings } = useGridState();
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending": return "text-amber-500 border-amber-500/30 bg-amber-500/10";
+      case "assigned": return "text-blue-500 border-blue-500/30 bg-blue-500/10";
+      case "in_progress": return "text-primary border-primary/30 bg-primary/10";
+      case "completed": return "text-emerald-500 border-emerald-500/30 bg-emerald-500/10";
+      case "cancelled": return "text-muted-foreground border-border bg-surface-3";
+      default: return "";
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "critical": return "text-risk-critical border-risk-critical/30 bg-risk-critical/10";
+      case "high": return "text-orange-500 border-orange-500/30 bg-orange-500/10";
+      case "medium": return "text-amber-500 border-amber-500/30 bg-amber-500/10";
+      case "low": return "text-emerald-500 border-emerald-500/30 bg-emerald-500/10";
+      default: return "";
+    }
+  };
 
   return (
     <Card className="bg-surface-2 border-border/50 overflow-hidden">
@@ -20,86 +41,61 @@ export function InspectionTable({ data, selectedId, onSelect }: InspectionTableP
         <table className="w-full text-sm text-left">
           <thead className="text-[11px] uppercase tracking-wider text-muted-foreground bg-surface-3/50 border-b border-border/50">
             <tr>
-              <th className="px-3 py-3 font-medium whitespace-nowrap min-w-[110px]">Inspection ID</th>
-              <th className="px-3 py-3 font-medium whitespace-nowrap">Consumer ID</th>
-              <th className="px-3 py-3 font-medium whitespace-nowrap">Transformer ID</th>
-              <th className="px-3 py-3 font-medium">Area</th>
-              <th className="px-3 py-3 font-medium text-center">Risk Score</th>
-              <th className="px-3 py-3 font-medium">Priority</th>
-              <th className="px-3 py-3 font-medium whitespace-nowrap">Assigned Officer</th>
-              <th className="px-3 py-3 font-medium">Status</th>
-              <th className="px-3 py-3 font-medium text-right">Action</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap min-w-[100px]">ID</th>
+              <th className="px-4 py-3 font-medium text-center">Priority</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium text-center">Transformer Risk</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">Assigned To</th>
+              <th className="px-4 py-3 font-medium text-right">Created</th>
+              <th className="px-4 py-3 font-medium text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
-            {data.map((ins) => {
-              const consumerAnalysis = allConsumers.find(c => c.data.id === ins.consumerId);
-              const transformerId = consumerAnalysis?.data.transformerId || "Unknown";
-              const area = consumerAnalysis?.data.area || "Unknown";
+            {data.map((inspection) => {
+              const isSelected = selectedId === inspection.id;
+              
+              const t = transformers.find(t => t.id === inspection.transformerId);
+              const risk = t ? calculateTransformerRisk(t, consumers, settings).score : 0;
+              const officer = officers.find(o => o.id === inspection.officerId);
 
-              const isSelected = selectedId === ins.id;
-              const isCritical = ins.priority === "critical";
-              const isHigh = ins.priority === "high";
-              const isMedium = ins.priority === "medium";
-              const isHighRisk = isCritical || isHigh;
-              
-              const getStatusColor = (status: string) => {
-                switch(status) {
-                  case "pending": return "text-amber-500 bg-amber-500/10 border-amber-500/50";
-                  case "assigned": return "text-blue-400 bg-blue-400/10 border-blue-400/50";
-                  case "in_progress": return "text-purple-400 bg-purple-400/10 border-purple-400/50";
-                  case "completed": return "text-emerald-500 bg-emerald-500/10 border-emerald-500/50";
-                  default: return "text-muted-foreground bg-surface-3 border-border/50";
-                }
-              };
-              
               return (
                 <tr 
-                  key={ins.id} 
-                  onClick={() => onSelect(ins.id)}
+                  key={inspection.id} 
+                  onClick={() => onSelect(inspection.id)}
                   className={cn(
                     "transition-colors cursor-pointer hover:bg-surface-3",
                     isSelected && "bg-primary/10 border-l-4 border-l-primary",
                     !isSelected && "border-l-4 border-l-transparent"
                   )}
                 >
-                  <td className="px-3 py-3 font-medium whitespace-nowrap text-foreground">{ins.id}</td>
-                  <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{ins.consumerId}</td>
-                  <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{transformerId}</td>
-                  <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{area}</td>
-                  <td className="px-3 py-3 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className={cn("h-full rounded-full", isHighRisk ? "bg-risk-critical" : (isMedium ? "bg-amber-400" : "bg-emerald-400"))}
-                          style={{ width: `${ins.riskScore}%` }}
-                        />
-                      </div>
-                      <span className="w-5 text-xs font-semibold text-foreground">{ins.riskScore}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <Badge variant="outline" className={cn(
-                      "font-bold px-1.5 py-0 text-[10px] uppercase",
-                      isCritical ? "border-risk-critical text-risk-critical bg-risk-critical/10" : 
-                      isHigh ? "border-orange-500/50 text-orange-500 bg-orange-500/10" :
-                      (isMedium ? "border-amber-500/50 text-amber-500 bg-amber-500/10" : "border-emerald-500/50 text-emerald-500 bg-emerald-500/10")
-                    )}>
-                      {ins.priority}
+                  <td className="px-4 py-3 font-bold whitespace-nowrap text-foreground">{inspection.id}</td>
+                  <td className="px-4 py-3 text-center">
+                    <Badge variant="outline" className={cn("font-bold uppercase text-[10px]", getPriorityColor(inspection.priority))}>
+                      {inspection.priority}
                     </Badge>
                   </td>
-                  <td className="px-3 py-3 text-foreground whitespace-nowrap">
-                    {ins.assignedOfficer ? ins.assignedOfficer : <span className="text-muted-foreground italic">Unassigned</span>}
-                  </td>
-                  <td className="px-3 py-3">
-                    <Badge variant="outline" className={cn("font-semibold px-1.5 py-0 text-[10px] uppercase", getStatusColor(ins.status))}>
-                      {ins.status.replace("_", " ")}
+                  <td className="px-4 py-3">
+                    <Badge variant="outline" className={cn("font-bold uppercase text-[10px]", getStatusColor(inspection.status))}>
+                      {inspection.status.replace("_", " ")}
                     </Badge>
                   </td>
-                  <td className="px-3 py-3 text-right">
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]">
-                      View
-                    </Button>
+                  <td className="px-4 py-3 text-center">
+                    <span className="font-bold text-foreground">
+                      {risk}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {officer ? (
+                      <span className="text-foreground">{officer.name}</span>
+                    ) : (
+                      <span className="text-muted-foreground italic">Unassigned</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">
+                    {new Date(inspection.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span className="text-xs font-semibold text-primary hover:underline cursor-pointer">Manage</span>
                   </td>
                 </tr>
               );
@@ -110,3 +106,4 @@ export function InspectionTable({ data, selectedId, onSelect }: InspectionTableP
     </Card>
   );
 }
+

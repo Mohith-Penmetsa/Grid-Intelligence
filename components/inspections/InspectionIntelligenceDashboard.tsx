@@ -6,28 +6,28 @@ import { Activity, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { InspectionTable } from "./InspectionTable";
 import { InspectionDetail } from "./InspectionDetail";
-import { InspectionData, MOCK_INSPECTIONS, InspectionStatus } from "@/lib/intelligence/inspection-data";
+import { useGridState } from "@/lib/store/grid-context";
 
 export function InspectionIntelligenceDashboard() {
-  const [data, setData] = useState<InspectionData[]>(MOCK_INSPECTIONS);
+  const { inspections } = useGridState();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const analysisRef = useRef<HTMLDivElement>(null);
 
   const filteredData = useMemo(() => {
-    if (activeFilter === "all") return data;
-    if (activeFilter === "critical") return data.filter(d => d.priority === "critical");
-    if (activeFilter === "high") return data.filter(d => d.priority === "high");
-    if (activeFilter === "pending") return data.filter(d => d.status === "pending");
-    if (activeFilter === "assigned") return data.filter(d => d.status === "assigned");
-    if (activeFilter === "in_progress") return data.filter(d => d.status === "in_progress");
-    if (activeFilter === "completed") return data.filter(d => d.status === "completed");
-    return data;
-  }, [data, activeFilter]);
+    if (activeFilter === "all") return inspections;
+    if (activeFilter === "critical") return inspections.filter(d => d.priority === "critical");
+    if (activeFilter === "high") return inspections.filter(d => d.priority === "high");
+    if (activeFilter === "pending") return inspections.filter(d => d.status === "pending");
+    if (activeFilter === "assigned") return inspections.filter(d => d.status === "assigned");
+    if (activeFilter === "in_progress") return inspections.filter(d => d.status === "in_progress");
+    if (activeFilter === "completed") return inspections.filter(d => d.status === "completed");
+    return inspections;
+  }, [inspections, activeFilter]);
 
   const selectedInspection = useMemo(() => {
-    return selectedId ? data.find((a) => a.id === selectedId) : null;
-  }, [selectedId, data]);
+    return selectedId ? inspections.find((a) => a.id === selectedId) : null;
+  }, [selectedId, inspections]);
 
   useEffect(() => {
     if (selectedId && analysisRef.current) {
@@ -36,27 +36,14 @@ export function InspectionIntelligenceDashboard() {
   }, [selectedId]);
 
   const stats = {
-    pending: data.filter(d => d.status === "pending").length,
-    critical: data.filter(d => d.priority === "critical").length,
-    inProgress: data.filter(d => d.status === "assigned" || d.status === "in_progress").length,
-    completed: data.filter(d => d.status === "completed").length,
-  };
-
-  const handleUpdateStatus = (id: string, status: InspectionStatus, officer?: string) => {
-    setData(prev => prev.map(ins => {
-      if (ins.id === id) {
-        return {
-          ...ins,
-          status,
-          assignedOfficer: officer !== undefined ? officer : ins.assignedOfficer
-        };
-      }
-      return ins;
-    }));
+    pending: inspections.filter(d => d.status === "pending").length,
+    critical: inspections.filter(d => d.priority === "critical").length,
+    inProgress: inspections.filter(d => d.status === "assigned" || d.status === "in_progress").length,
+    completed: inspections.filter(d => d.status === "completed").length,
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-500 pb-10">
       {/* KPI Overview */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-surface-2 border-border/50">
@@ -153,7 +140,6 @@ export function InspectionIntelligenceDashboard() {
           <InspectionDetail 
             inspection={selectedInspection} 
             onClose={() => setSelectedId(null)} 
-            onUpdateStatus={handleUpdateStatus}
           />
         ) : (
           <div className="flex h-[120px] items-center justify-center rounded-lg border border-border border-dashed bg-surface-2/30">
@@ -166,3 +152,4 @@ export function InspectionIntelligenceDashboard() {
     </div>
   );
 }
+
